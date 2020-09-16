@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 
 namespace dm_14475
 {
@@ -28,39 +29,86 @@ namespace dm_14475
         {
             services.AddControllersWithViews();
 
-             services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;      //If cookies not provided => Ask OpenIdConnect
-                    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-                })
-                  .AddCookie(options => {
-                   
-                    options.Cookie.Expiration = TimeSpan.FromDays(1);
+            services.AddAuthentication(options =>
+               {
+                   options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                   options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;      //If cookies not provided => Ask OpenIdConnect
+                   options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+               })
+                 .AddCookie(options => {
 
-                    options.ForwardDefaultSelector = context =>
-                    {
-                        var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                        if (authHeader?.StartsWith("Bearer ") == true)  //Authentification on the APi from postman or consumer of the BO Api (not the ui front in react)
+                     options.ExpireTimeSpan = TimeSpan.FromDays(1);
+
+                     options.ForwardDefaultSelector = context =>
+                      {
+                       var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                       if (authHeader?.StartsWith("Bearer ") == true)  //Authentification on the APi from postman or consumer of the BO Api (not the ui front in react)
                         {
-                            return JwtBearerDefaults.AuthenticationScheme;
-                        }
-                        return CookieAuthenticationDefaults.AuthenticationScheme; //Authentification cookies for React front and Api call, if not set it will ask to DefaultChallengeScheme witch is linked to : OpenIdConnectDefaults
+                           return JwtBearerDefaults.AuthenticationScheme;
+                       }
+                       return CookieAuthenticationDefaults.AuthenticationScheme; //Authentification cookies for React front and Api call, if not set it will ask to DefaultChallengeScheme witch is linked to : OpenIdConnectDefaults
                     };
 
+                 })
+               .AddOpenIdConnect(options =>
+               {
+                   options.ClientId = "0oaz03fm2u0MZWNYM4x6";
+                   options.Authority = "https://dev-455423.okta.com/oauth2/default";
+                   //options.CallbackPath = "/signin-oidc";
+
+                   //options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+                   //options.RequireHttpsMetadata = true;
+                   //options.ClientSecret = "8h9VRIneMFHJOqNuyk2FS1ap1WVyI29L_H7Ftis6";
+                   //options.ResponseType = OpenIdConnectResponseType.Code;
+                   //options.GetClaimsFromUserInfoEndpoint = true;
+                   //options.Scope.Add("openid");
+                   //options.Scope.Add("profile");
+                   //options.SaveTokens = true;
+                   //options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                   //{
+                   //    NameClaimType = "name"
+                   //    ,
+                   //    ValidateIssuer = true
+                   //};
+
+
                 })
-                .AddOpenIdConnect(options =>
+                .AddJwtBearer(options =>
+
                 {
-                    options.ClientId = "0oaz03fm2u0MZWNYM4x6";
+
+                    options.Audience = "api://default";
+
                     options.Authority = "https://dev-455423.okta.com/oauth2/default";
-                    options.CallbackPath = "/account/login";
 
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
 
+                    {
 
-                })
+                        ClockSkew = TimeSpan.FromMinutes(10),
 
-              
-                ;
+                        RequireSignedTokens = true,
+
+                        RequireExpirationTime = true,
+
+                        ValidateLifetime = true,
+
+                        ValidateAudience = true,
+
+                        ValidAudiences = new string[] { "api://default" },
+
+                        ValidateIssuer = true,
+
+                        ValidIssuers = new string[] { "https://dev-455423.okta.com/oauth2/default" }
+
+                    };
+
+                    options.RequireHttpsMetadata = false;
+
+                });
+
+            ;
+            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -80,7 +128,7 @@ namespace dm_14475
             app.UseStaticFiles();
 
             app.UseRouting();
-
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
