@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -73,6 +74,7 @@ namespace dm_14475
 
 
                 })
+              
                 .AddJwtBearer(options =>
 
                 {
@@ -108,7 +110,11 @@ namespace dm_14475
                 });
 
             ;
-            
+            services.AddAuthorization(configure =>
+            {
+                
+            });
+      
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
